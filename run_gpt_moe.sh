@@ -102,6 +102,8 @@ EVAL_AND_LOGGING_ARGS=(
     --save-interval 1000
     --log-throughput
     --profile
+    --use-pytorch-profiler
+    --tensorboard-dir ./profile
     --profile-step-start 4
     --profile-step-end 6
 )
