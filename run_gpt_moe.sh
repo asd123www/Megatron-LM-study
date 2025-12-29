@@ -1,15 +1,25 @@
-PP_SIZE=2; CP_SIZE=1; EP_SIZE=4
-WORLD_SIZE=8
-DP_SIZE=$(( WORLD_SIZE/(PP_SIZE*CP_SIZE*EP_SIZE) ))
+export GPUS_PER_NODE=$(nvidia-smi -L | wc -l)
+export MASTER_ADDR=$ARNOLD_WORKER_0_HOST
+export MASTER_PORT=12345
+export NNODES=$ARNOLD_NUM
+export GPUS_PER_NODE=$ARNOLD_WORKER_GPU
+export WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
+export NODE_RANK=$ARNOLD_ID
+
+PP_SIZE=2
+CP_SIZE=2
+EP_SIZE=4
+DP_SIZE=$(( WORLD_SIZE/(PP_SIZE*CP_SIZE) ))
 
 MICRO_BATCH_SIZE=1
-GLOBAL_BATCH_SIZE=16
+NUM_MICROBATCHES=1
+GLOBAL_BATCH_SIZE=$(( MICRO_BATCH_SIZE * DP_SIZE * NUM_MICROBATCHES ))
 
-SEQ_LENGTH=$(( 1024*CP_SIZE ))
-MAX_POSITION_EMBEDDINGS=$(( 1024*CP_SIZE ))
+SEQ_LENGTH=$(( 2048*CP_SIZE ))
+MAX_POSITION_EMBEDDINGS=$(( 2048*CP_SIZE ))
 
 
-NUM_EXPERTS=8
+NUM_EXPERTS=128
 TOPK=4  # top-4 routing, consistent with GPT-OSS
 
 #   File "/opt/tiger/fsdp-eval/Megatron-LM/megatron/training/arguments.py", line 963, in validate_args
@@ -19,13 +29,13 @@ TOPK=4  # top-4 routing, consistent with GPT-OSS
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 
-DATA_CACHE_PATH="${PWD}/benchmark_training"
+DATA_CACHE_PATH="/mnt/hdfs/__MERLIN_USER_DIR__/benchmark_training"
 mkdir -p "$DATA_CACHE_PATH"
 
 DATA_ARGS_LIST=(
     --mock-data
     --tokenizer-type NullTokenizer
-    --vocab-size 32000
+    --vocab-size 201088
     --data-cache-path ${DATA_CACHE_PATH}
     --tiktoken-pattern v2
     --split '99,1,0'
@@ -40,21 +50,23 @@ DATA_ARGS_LIST=(
 # By default it's auto.
 MODEL_ARGS=(
     --num-layers 8
-    --hidden-size 512
-    --ffn-hidden-size 1792
-    --num-attention-heads 8
+    --hidden-size 2880
+    --ffn-hidden-size 2880
+    --num-attention-heads 64
     --group-query-attention
     --num-query-groups 8
-    --kv-channels 128
+    --kv-channels 64
     --seq-length $SEQ_LENGTH
     --max-position-embeddings $MAX_POSITION_EMBEDDINGS
     --position-embedding-type rope
-    --rotary-base 1000000 
+    --rotary-base 150000 
     --rotary-percent 1.0
     --attention-dropout 0.0
     --hidden-dropout 0.0
     --swiglu
     --init-method-std 0.0134
+    --normalization RMSNorm
+    --norm-epsilon 1e-5
     --attention-backend flash
     --apply-layernorm-1p
     --untie-embeddings-and-output-weights
@@ -93,7 +105,6 @@ TRAINING_ARGS=(
     --empty-unused-memory-level 1
 )
 
-
 EVAL_AND_LOGGING_ARGS=(
     --log-interval 1
     --eval-iters 1
@@ -101,16 +112,19 @@ EVAL_AND_LOGGING_ARGS=(
     --eval-interval 100
     --save-interval 1000
     --log-throughput
+    # --ckpt-format fsdp_dtensor
     --profile
     --use-pytorch-profiler
     --tensorboard-dir ./profile
-    --profile-step-start 4
+    --profile-step-start 5
     --profile-step-end 6
 )
 
-
 # Model parallelism arguments
 MODEL_PARALLEL_ARGS=(
+    # --use-torch-fsdp2
+    --data-parallel-sharding-strategy optim_grads_params
+    --no-gradient-accumulation-fusion
     --expert-model-parallel-size $EP_SIZE
     --pipeline-model-parallel-size $PP_SIZE
     --context-parallel-size $CP_SIZE
@@ -121,8 +135,14 @@ MODEL_PARALLEL_ARGS=(
 )
 # --context-parallel-size  --cp-comm-type allgather \
 
-torchrun --standalone --nproc_per_node=8 pretrain_gpt.py \
-  --train-iters 10 \
+torchrun \
+  --nnodes=$NNODES \
+  --nproc_per_node=$GPUS_PER_NODE \
+  --node_rank=$NODE_RANK \
+  --master_addr=$MASTER_ADDR \
+  --master_port=$MASTER_PORT \
+  pretrain_gpt.py \
+  --train-iters 15 \
   ${MODEL_PARALLEL_ARGS[@]} \
   ${TRAINING_ARGS[@]} \
   ${DATA_ARGS_LIST[@]} \
