@@ -6,9 +6,9 @@ export GPUS_PER_NODE=$ARNOLD_WORKER_GPU
 export WORLD_SIZE=$(($GPUS_PER_NODE*$NNODES))
 export NODE_RANK=$ARNOLD_ID
 
-PP_SIZE=2
+PP_SIZE=4
 CP_SIZE=2
-EP_SIZE=4
+EP_SIZE=8
 DP_SIZE=$(( WORLD_SIZE/(PP_SIZE*CP_SIZE) ))
 
 MICRO_BATCH_SIZE=1
@@ -49,7 +49,7 @@ DATA_ARGS_LIST=(
 #   --attention-backend flash \
 # By default it's auto.
 MODEL_ARGS=(
-    --num-layers 8
+    --num-layers 36
     --hidden-size 2880
     --ffn-hidden-size 2880
     --num-attention-heads 64
@@ -116,7 +116,7 @@ EVAL_AND_LOGGING_ARGS=(
     --profile
     --use-pytorch-profiler
     --tensorboard-dir ./profile
-    --profile-step-start 5
+    --profile-step-start 3
     --profile-step-end 6
 )
 
