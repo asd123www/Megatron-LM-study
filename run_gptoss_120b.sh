@@ -67,7 +67,7 @@ MODEL_ARGS=(
     --init-method-std 0.0134
     --normalization RMSNorm
     --norm-epsilon 1e-5
-    --attention-backend flash
+    --attention-backend auto
     --apply-layernorm-1p
     --untie-embeddings-and-output-weights
     --disable-bias-linear
