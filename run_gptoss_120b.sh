@@ -27,7 +27,7 @@ TOPK=4  # top-4 routing, consistent with GPT-OSS
 #     assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1", \
 #            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # AssertionError: Using tensor model parallelism or context parallelism require setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1
-# export CUDA_DEVICE_MAX_CONNECTIONS=1
+export CUDA_DEVICE_MAX_CONNECTIONS=8
 
 
 DATA_CACHE_PATH="/mnt/hdfs/__MERLIN_USER_DIR__/benchmark_training"

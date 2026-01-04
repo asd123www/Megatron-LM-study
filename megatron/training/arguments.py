@@ -6,6 +6,7 @@ import argparse
 import dataclasses
 import json
 import os
+import warnings
 from pathlib import Path
 import re
 import types
@@ -961,8 +962,8 @@ def validate_args(args, defaults={}):
             )
         else:
             # change to warning:
-            if os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1":
-                warn_rank_0("Using tensor model parallelism or context parallelism require setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1 for better parallelization.")
+            if os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') != "1":
+                warnings.warn(f"Using tensor model parallelism or context parallelism recommend setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1 for better parallelization, current value is {os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS')}")
 
             # assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1", \
             #     "Using tensor model parallelism or context parallelism require setting the environment variable " \
