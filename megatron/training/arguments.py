@@ -714,8 +714,7 @@ def validate_args(args, defaults={}):
             assert args.check_weight_hash_across_dp_replicas_interval is None, \
                 'check_weight_hash_across_dp_replicas_interval is not supported with optim_grads_params'
 
-        assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') != "1", \
-            'FSDP always requires CUDA_DEVICE_MAX_CONNECTIONS value large than one'
+        warnings.warn(f"FSDP always requires CUDA_DEVICE_MAX_CONNECTIONS value large than one, current value is {os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS')}")
 
         assert args.ckpt_format == "fsdp_dtensor", \
             "Megatron FSDP only supports fsdp_dtensor checkpoint format"
