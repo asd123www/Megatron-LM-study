@@ -960,9 +960,13 @@ def validate_args(args, defaults={}):
                 args.rank,
             )
         else:
-            assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1", \
-                "Using tensor model parallelism or context parallelism require setting the environment variable " \
-                "CUDA_DEVICE_MAX_CONNECTIONS to 1"
+            # change to warning:
+            if os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1":
+                warn_rank_0("Using tensor model parallelism or context parallelism require setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1 for better parallelization.")
+
+            # assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1", \
+            #     "Using tensor model parallelism or context parallelism require setting the environment variable " \
+            #     "CUDA_DEVICE_MAX_CONNECTIONS to 1"
 
     # Setting FSDP communication groups for high priority streams for Blackwell and later architectures
     # Assigning high priority to communication streams ensures that communication kernels are scheduled

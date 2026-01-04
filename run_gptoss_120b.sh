@@ -8,7 +8,7 @@ export NODE_RANK=$ARNOLD_ID
 
 
 PP_SIZE=1
-CP_SIZE=1
+CP_SIZE=16
 EP_SIZE=4
 DP_SIZE=$(( WORLD_SIZE/(PP_SIZE*CP_SIZE) ))
 
@@ -16,18 +16,18 @@ MICRO_BATCH_SIZE=1
 NUM_MICROBATCHES=1
 GLOBAL_BATCH_SIZE=$(( MICRO_BATCH_SIZE * DP_SIZE * NUM_MICROBATCHES ))
 
-SEQ_LENGTH=$(( 16384*CP_SIZE ))
-MAX_POSITION_EMBEDDINGS=$(( 16384*CP_SIZE ))
+SEQ_LENGTH=65536
+MAX_POSITION_EMBEDDINGS=65536
 
 
-NUM_EXPERTS=8
+NUM_EXPERTS=32
 TOPK=4  # top-4 routing, consistent with GPT-OSS
 
 #   File "/opt/tiger/fsdp-eval/Megatron-LM/megatron/training/arguments.py", line 963, in validate_args
 #     assert os.environ.get('CUDA_DEVICE_MAX_CONNECTIONS') == "1", \
 #            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # AssertionError: Using tensor model parallelism or context parallelism require setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1
-export CUDA_DEVICE_MAX_CONNECTIONS=1
+# export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 
 DATA_CACHE_PATH="/mnt/hdfs/__MERLIN_USER_DIR__/benchmark_training"
@@ -49,7 +49,7 @@ DATA_ARGS_LIST=(
 #   --attention-backend flash \
 # By default it's auto.
 MODEL_ARGS=(
-    --num-layers 9
+    --num-layers 6
     --hidden-size 2880
     --ffn-hidden-size 2880
     --num-attention-heads 64
@@ -120,17 +120,17 @@ EVAL_AND_LOGGING_ARGS=(
 
 # Model parallelism arguments
 MODEL_PARALLEL_ARGS=(
-    --data-parallel-sharding-strategy optim_grads_params
+    # --data-parallel-sharding-strategy optim_grads_params
+    # --use-distributed-optimizer
+    # --overlap-grad-reduce
+    # --overlap-param-gather
     --no-gradient-accumulation-fusion
     --expert-model-parallel-size $EP_SIZE
     --pipeline-model-parallel-size $PP_SIZE
     --context-parallel-size $CP_SIZE
+    --cp-comm-type p2p
     --sequence-parallel
-    --use-distributed-optimizer
-    --overlap-grad-reduce
-    --overlap-param-gather
 )
-# --context-parallel-size  --cp-comm-type allgather \
 
 torchrun \
   --nnodes=$NNODES \
